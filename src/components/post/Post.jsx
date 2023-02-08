@@ -1,45 +1,98 @@
+import { format, formatDistanceToNow } from 'date-fns';
+
+import ptBR from 'date-fns/locale/pt-BR';
+
+import { useState } from 'react';
+
 import { Avatar } from '../avatar/Avatar';
 
 import { Comment } from '../comment/Comment';
 
 import styles from './Post.module.css';
 
-export function Post(){
+export function Post({ author, publishedAt, content }){
+
+    const [comments, setComments] = useState(['Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua']);
+
+    const [newCommentText, setNewCommentText] = useState('');
+
+    const publishedDateFormatted = format(publishedAt, "d 'de' LLL 'às' HH:mm'h'", {
+        locale: ptBR,
+    });
+
+    const publishedDateRelativeToNow = formatDistanceToNow(publishedAt, {
+        locale: ptBR,
+        addSuffix: true,
+    })
+
+    function handleCreateComment() {
+        event.preventDefault();
+
+        const newCommentText = event.target.comment.value;
+
+        setComments([...comments, newCommentText]);
+
+        setNewCommentText('');
+    }
+
+    function handleNewCommentChange() {
+        event.target.setCustomValidity('');
+        setNewCommentText(event.target.value);
+    }
+
+    function handleNewCommentInvalid() {
+        event.target.setCustomValidity('Digite um comentário!');
+    }
+
+    const isNewCommentEmpty = newCommentText.length === 0;
+
+    function deleteComment(commentToDelete) {
+        const commentsWithoutDeletedOne = comments.filter(comment => {
+            return comment != commentToDelete;
+        })
+        setComments(commentsWithoutDeletedOne);
+    }
+
     return(
         <article className={styles.post}>
             <header>
                 <div className={styles.author}>
-                    <Avatar src='https://avatars.githubusercontent.com/u/86542133?v=4' />
+                    <Avatar src={author.avatarUrl} />
                     <div className={styles.authorInfo}>
-                        <strong>Bruna Paes</strong>
-                        <span>React and React Native Developer</span>
+                        <strong>{author.name}</strong>
+                        <span>{author.role}</span>
                     </div>
                 </div>
-                <time title='5 de Janeiro às 13:20h' dateTime='2022-01-15'>
-                    Publicado há 1h
+                <time title={publishedDateFormatted} dateTime={publishedAt.toISOString()}>
+                    {publishedDateRelativeToNow}
                 </time>
             </header>
             <div className={styles.content}>
-                <p>
-                    Lorem, ipsum dolor sit amet consectetur adipisicing elit. Porro molestias autem odio nam corporis sit ab at nihil temporibus. Dolor minima earum voluptatem recusandae corporis, dolores aliquid placeat accusantium consectetur.
-                </p>
-                <p>
-                    Lorem ipsum dolor sit amet consectetur adipisicing elit. Voluptates tenetur earum amet est voluptatem molestiae obcaecati impedit ipsum perferendis. Esse debitis nihil totam nesciunt beatae veniam voluptatibus sunt veritatis eveniet?
-                </p>
-                <p>
-                    Lorem, ipsum dolor sit amet consectetur adipisicing elit. Maxime eligendi laborum, illo inventore ab aliquid consectetur porro molestias voluptas iure officia accusantium consequatur corporis perspiciatis optio. Earum officia vel beatae.
-                </p>
+                {
+                    content.map(line => {
+                        if (line.type === 'paragraph') {
+                            return <p key={line.content}>{line.content}</p>
+                        } else if (line.type === 'link') {
+                            return <p key={line.content}><a href={line.content}>{line.content}</a></p>
+                        }
+                    })
+                }
             </div>
 
-            <form className={styles.commentForm}>
+            <form onSubmit={handleCreateComment} className={styles.commentForm}>
                 <strong>
                     Deixe seu feedback!
                 </strong>
-                <textarea 
+                <textarea
+                    name='comment' 
                     placeholder='Deixe um comentário'
+                    value={newCommentText}
+                    onChange={handleNewCommentChange}
+                    onInvalid={handleNewCommentInvalid}
+                    required
                 />
                 <footer>
-                    <button type='submit'>
+                    <button type='submit' disabled={isNewCommentEmpty}>
                         Publicar
                     </button>
                 </footer>
@@ -47,7 +100,17 @@ export function Post(){
             </form>
 
             <div className={styles.commentList}>
-                <Comment />
+                {
+                    comments.map(comment => {
+                        return (
+                            <Comment 
+                                key={comment} 
+                                content={comment} 
+                                onDeleteComment={deleteComment} 
+                            />
+                        )
+                    })
+                }
             </div>
         </article>
     )
